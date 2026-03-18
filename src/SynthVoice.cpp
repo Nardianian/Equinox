@@ -205,6 +205,7 @@ void SynthVoice::startNote (int midiNoteNumber, float velocity, SynthesiserSound
     setPitchBend(currentPitchWheelPosition);
     analogPitchMod = getAnalogPitch();
     currentModifiedFrequency = getFrequency();
+    midiKeyVelocity = velocity;
     
     if (portamentoTime > 0)
     {
@@ -216,7 +217,6 @@ void SynthVoice::startNote (int midiNoteNumber, float velocity, SynthesiserSound
     if (!noteHasBeenTriggered)
     {
         voiceFilter.reset();
-        midiKeyVelocity = velocity;
         ampEnvelope.noteOn();
         filterEnvelope.noteOn();
         noteHasBeenTriggered = true;

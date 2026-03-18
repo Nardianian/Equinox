@@ -44,44 +44,37 @@ protected:
     /** Method used for handling midi events*/
     void handleMidiEvent(const MidiMessage &) override;
     
- private:
-    /** Returns true if the synth currently only has one voice*/
-    bool monoEnabled() const;
-    
-    Array<MidiMessage> heldDownNotes;
-    
+private:
     struct MidiNote
     {
-    public:
-        MidiNote(const int channel, const int noteNumber, const float velocity) : channel(channel), noteNumber(noteNumber), velocity(velocity)
-        {}
-        
-        const int getChannel() const { return channel; }
-        
-        const int getNoteNumber() const { return noteNumber; }
-        
-        const float getVelocity() const { return velocity; }
-        
-    private:
+        MidiNote() = default;
+
+        MidiNote (const int channelIn, const int noteNumberIn, const float velocityIn)
+            : channel (channelIn), noteNumber (noteNumberIn), velocity (velocityIn)
+        {
+        }
+
+        bool matches (const int midiChannel, const int midiNoteNumber) const
+        {
+            return channel == midiChannel && noteNumber == midiNoteNumber;
+        }
+
         int channel;
         int noteNumber;
         float velocity;
     };
-    
-    struct hdn
-    {
-        Array<MidiNote> notes;
-        
-        void add(const MidiNote& m)
-        {
-            
-        }
-        
-        void remove(const MidiNote& m)
-        {
-            
-        }
-    };
-    
+
+    /** Returns true if the synth currently only has one voice*/
+    bool monoEnabled() const;
+
+    SynthVoice* getMonoVoice() const;
+    SynthesiserSound* findSoundForNote (int midiChannel, int midiNoteNumber) const;
+    void startMonoVoice (const MidiNote& note, bool shouldRetrigger);
+    void stopMonoVoice (float velocity, bool allowTailOff);
+    void addHeldNote (const MidiNote& note);
+    bool removeHeldNote (int midiChannel, int midiNoteNumber);
+
+    Array<MidiNote> heldDownNotes;
+
     voiceType _voiceType;
 };

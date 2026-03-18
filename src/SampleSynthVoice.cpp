@@ -31,6 +31,7 @@ void SampleSynthVoice::startNote (int midiNoteNumber, float velocity, Synthesise
     {
         if (sampleSound->data)
         {
+            currentNoteNumber = midiNoteNumber;
             setFrequency (std::pow (2.0f, (midiNoteNumber - sampleSound->midiRootNote) / 12.0f)
                           * sampleSound->sourceSamplerate / getSampleRate());
 
