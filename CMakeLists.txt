@@ -4,6 +4,8 @@ cmake_minimum_required(VERSION 3.24)
 # Sets the project name and version
 project(Equinox VERSION 1.2.0)
 
+option(EQUINOX_BUILD_TESTS "Build Equinox core regression tests" ON)
+
 # Adds the JUCE library
 add_subdirectory(lib/JUCE)
 
@@ -16,7 +18,7 @@ juce_add_plugin("${PROJECT_NAME}"
     # VERSION ...                               # Set this if the plugin version is different to the project version
     # ICON_BIG ...                              # ICON_* arguments specify a path to an image file to use as an icon for the Standalone
     # ICON_SMALL ...
-    COMPANY_NAME "OliverRasmussen" # Specify the name of the plugin's author
+    COMPANY_NAME "OSR" # Specify the name of the plugin's author
     IS_SYNTH TRUE # Is this a synth or an effect?
     NEEDS_MIDI_INPUT TRUE # Does the plugin need midi input?
     NEEDS_MIDI_OUTPUT FALSE # Does the plugin need midi output?
@@ -47,6 +49,9 @@ file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/src/*.cpp"
 # Adds the source files to the target
 target_sources("${PROJECT_NAME}" PRIVATE ${SOURCE_FILES})
 
+target_include_directories("${PROJECT_NAME}" PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src")
+
 # Sets the C++ standard of the target to C++20
 target_compile_features("${PROJECT_NAME}" PUBLIC cxx_std_20)
 
@@ -71,13 +76,28 @@ target_compile_definitions("${PROJECT_NAME}"
 # static library. These source files can be of any kind (wav data, images, fonts, icons etc.).
 # Conversion to binary-data will happen when your target is built.
 
-# Creates a list of all the files in the resources folder recursively
-file(GLOB_RECURSE RESOURCE_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/resources/*")
-list(FILTER RESOURCE_FILES EXCLUDE REGEX ".*DS_Store") # Remove any DS_Store files (macOS)
+file(GLOB_RECURSE GRAPHICS_RESOURCE_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/resources/graphics/*")
+list(FILTER GRAPHICS_RESOURCE_FILES EXCLUDE REGEX ".*DS_Store")
 
-juce_add_binary_data(Resources
-    SOURCES ${RESOURCE_FILES}
-    NAMESPACE Resources)
+file(GLOB_RECURSE FONT_RESOURCE_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/resources/fonts/*")
+list(FILTER FONT_RESOURCE_FILES EXCLUDE REGEX ".*DS_Store")
+
+file(GLOB_RECURSE PRESET_RESOURCE_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/resources/presets/*.equinox")
+
+juce_add_binary_data(GraphicsResources
+    HEADER_NAME GraphicsBinaryData.h
+    SOURCES ${GRAPHICS_RESOURCE_FILES}
+    NAMESPACE GraphicsResources)
+
+juce_add_binary_data(FontResources
+    HEADER_NAME FontBinaryData.h
+    SOURCES ${FONT_RESOURCE_FILES}
+    NAMESPACE FontResources)
+
+juce_add_binary_data(PresetResources
+    HEADER_NAME PresetBinaryData.h
+    SOURCES ${PRESET_RESOURCE_FILES}
+    NAMESPACE PresetResources)
 
 # `target_link_libraries` links libraries and JUCE modules to other libraries or executables. Here,
 # we're linking our executable target to the `juce::juce_audio_utils` module. Inter-module
@@ -86,10 +106,44 @@ juce_add_binary_data(Resources
 # here too. This is a standard CMake command.
 target_link_libraries("${PROJECT_NAME}"
     PRIVATE
-    Resources
+    GraphicsResources
+    FontResources
+    PresetResources
     juce::juce_audio_utils
     juce::juce_dsp
     PUBLIC
     juce::juce_recommended_config_flags
     juce::juce_recommended_lto_flags
     juce::juce_recommended_warning_flags)
+
+if (EQUINOX_BUILD_TESTS)
+    enable_testing()
+
+    juce_add_console_app(EquinoxCoreTests)
+    juce_generate_juce_header(EquinoxCoreTests)
+
+    target_sources(EquinoxCoreTests PRIVATE
+        tests/EquinoxCoreTests.cpp)
+
+    target_include_directories(EquinoxCoreTests PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/src"
+        "${CMAKE_CURRENT_BINARY_DIR}/juce_binarydata_GraphicsResources/JuceLibraryCode"
+        "${CMAKE_CURRENT_BINARY_DIR}/juce_binarydata_FontResources/JuceLibraryCode"
+        "${CMAKE_CURRENT_BINARY_DIR}/juce_binarydata_PresetResources/JuceLibraryCode")
+
+    target_link_libraries(EquinoxCoreTests
+        PRIVATE
+        Equinox
+        juce::juce_audio_utils
+        juce::juce_dsp
+        PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_lto_flags
+        juce::juce_recommended_warning_flags)
+
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(EquinoxCoreTests PRIVATE -Wno-macro-redefined)
+    endif()
+
+    add_test(NAME EquinoxCoreTests COMMAND EquinoxCoreTests)
+endif()

@@ -1,0 +1,44 @@
+/*
+  ==============================================================================
+     ______ ____   __  __ ____ _   __ ____  _  __
+    / ____// __ \ / / / //  _// | / // __ \| |/ /
+   / __/  / / / // / / / / / /  |/ // / / /|   /
+  / /___ / /_/ // /_/ /_/ / / /|  // /_/ //   |
+ /_____/ \___\_\\____//___//_/ |_/ \____//_/|_|
+ 
+    Reverb.h
+    Author:  Oliver Rasmussen
+
+  ==============================================================================
+*/
+
+#pragma once
+
+#include <JuceHeader.h>
+
+class ReverbFX
+{
+public:
+    ReverbFX() = default;
+    ~ReverbFX() = default;
+
+    /** Prepares the reverb*/
+    void prepare (const dsp::ProcessSpec& spec);
+
+    /** Resets the reverb*/
+    void reset();
+
+    /** Returns true if the reverb is active*/
+    [[nodiscard]] bool isActive() const;
+
+    /** Sets the reverbs parameters*/
+    void setParameters (float roomSize, float damping, float width, float wetMix);
+
+    /** Processes the AudioBuffer reference through the reverb*/
+    void process (AudioBuffer<float>& bufferToProcess);
+
+private:
+    dsp::Reverb::Parameters reverbParameters;
+    dsp::Reverb reverb;
+    float mix = 0.0f;
+};

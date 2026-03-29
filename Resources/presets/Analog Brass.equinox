@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<currentstate>
+  <parameterstate>
+    <PARAM id="ampAttack1" value="0.009999999776482582"/>
+    <PARAM id="ampAttack2" value="2.500999927520752"/>
+    <PARAM id="ampAttack3" value="0.009999999776482582"/>
+    <PARAM id="ampDecay1" value="1.0"/>
+    <PARAM id="ampDecay2" value="1.0"/>
+    <PARAM id="ampDecay3" value="1.0"/>
+    <PARAM id="ampRelease1" value="0.3009999990463257"/>
+    <PARAM id="ampRelease2" value="0.5"/>
+    <PARAM id="ampRelease3" value="0.5"/>
+    <PARAM id="ampSustain1" value="0.4199999868869781"/>
+    <PARAM id="ampSustain2" value="0.3100000023841858"/>
+    <PARAM id="ampSustain3" value="0.7999999523162842"/>
+    <PARAM id="amplitude1" value="0.3999999761581421"/>
+    <PARAM id="amplitude2" value="0.07999999821186066"/>
+    <PARAM id="amplitude3" value="0.0"/>
+    <PARAM id="analogValue1" value="1.0"/>
+    <PARAM id="analogValue2" value="1.0"/>
+    <PARAM id="analogValue3" value="1.0"/>
+    <PARAM id="cutoff1" value="2122.0"/>
+    <PARAM id="cutoff2" value="18668.30078125"/>
+    <PARAM id="cutoff3" value="22050.0"/>
+    <PARAM id="detune1" value="-6.510000228881836"/>
+    <PARAM id="detune2" value="-4.090000152587891"/>
+    <PARAM id="detune3" value="0.0"/>
+    <PARAM id="drive1" value="1.0"/>
+    <PARAM id="drive2" value="1.0"/>
+    <PARAM id="drive3" value="1.0"/>
+    <PARAM id="envelopeCutoffLimit1" value="5191.60009765625"/>
+    <PARAM id="envelopeCutoffLimit2" value="10000.0"/>
+    <PARAM id="envelopeCutoffLimit3" value="10000.0"/>
+    <PARAM id="filterAttack1" value="0.0"/>
+    <PARAM id="filterAttack2" value="0.0"/>
+    <PARAM id="filterAttack3" value="0.0"/>
+    <PARAM id="filterDecay1" value="10.0"/>
+    <PARAM id="filterDecay2" value="0.0"/>
+    <PARAM id="filterDecay3" value="0.0"/>
+    <PARAM id="filterRelease1" value="0.0"/>
+    <PARAM id="filterRelease2" value="0.0"/>
+    <PARAM id="filterRelease3" value="0.0"/>
+    <PARAM id="filterSustain1" value="0.0"/>
+    <PARAM id="filterSustain2" value="0.0"/>
+    <PARAM id="filterSustain3" value="0.0"/>
+    <PARAM id="filterType1" value="0.0"/>
+    <PARAM id="filterType2" value="0.0"/>
+    <PARAM id="filterType3" value="0.0"/>
+    <PARAM id="finePitch1" value="0.0"/>
+    <PARAM id="finePitch2" value="0.0"/>
+    <PARAM id="finePitch3" value="0.0"/>
+    <PARAM id="monoEnabled1" value="0.0"/>
+    <PARAM id="monoEnabled2" value="0.0"/>
+    <PARAM id="monoEnabled3" value="0.0"/>
+    <PARAM id="oscPanning1" value="0.0"/>
+    <PARAM id="oscPanning2" value="0.0"/>
+    <PARAM id="oscPanning3" value="0.0"/>
+    <PARAM id="pitchTranspose1" value="0.0"/>
+    <PARAM id="pitchTranspose2" value="0.0"/>
+    <PARAM id="pitchTranspose3" value="0.0"/>
+    <PARAM id="portamento1" value="0.0"/>
+    <PARAM id="portamento2" value="0.0"/>
+    <PARAM id="portamento3" value="0.0"/>
+    <PARAM id="resonance1" value="0.0"/>
+    <PARAM id="resonance2" value="0.0"/>
+    <PARAM id="resonance3" value="0.0"/>
+    <PARAM id="synthMode1" value="0.0"/>
+    <PARAM id="synthMode2" value="0.0"/>
+    <PARAM id="synthMode3" value="0.0"/>
+    <PARAM id="waveform1" value="1.0"/>
+    <PARAM id="waveform2" value="1.0"/>
+    <PARAM id="waveform3" value="0.0"/>
+    <PARAM id="chorusDelay" value="14.40000057220459"/>
+    <PARAM id="chorusDepth" value="0.07999999821186066"/>
+    <PARAM id="chorusFeedback"/>
+    <PARAM id="chorusMix" value="0.4099999964237213"/>
+    <PARAM id="chorusRate" value="1.950000047683716"/>
+    <PARAM id="delayFeedback" value="79.0"/>
+    <PARAM id="delayMix" value="0.0"/>
+    <PARAM id="delayTime" value="4.0"/>
+    <PARAM id="phaserDepth" value="0.5199999809265137"/>
+    <PARAM id="phaserFeedback"/>
+    <PARAM id="phaserFrequency"/>
+    <PARAM id="phaserMix" value="0.1899999976158142"/>
+    <PARAM id="phaserRate" value="0.3588000237941742"/>
+    <PARAM id="reverbDamping" value="0.7199999690055847"/>
+    <PARAM id="reverbMix" value="0.3199999928474426"/>
+    <PARAM id="reverbRoomsize" value="0.6599999666213989"/>
+    <PARAM id="reverbWidth" value="0.8499999642372131"/>
+    <PARAM id="isActive1" value="1.0"/>
+    <PARAM id="isActive2" value="1.0"/>
+    <PARAM id="isActive3"/>
+    <PARAM id="phase1"/>
+    <PARAM id="phase2"/>
+    <PARAM id="phase3"/>
+    <PARAM id="sampleStartTime1"/>
+    <PARAM id="sampleStartTime2"/>
+    <PARAM id="sampleStartTime3"/>
+  </parameterstate>
+  <audiosamplestate/>
+</currentstate>

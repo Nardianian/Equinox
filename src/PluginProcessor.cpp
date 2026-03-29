@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "state/PluginParameterLayout.h"
 
 //==============================================================================
 EquinoxAudioProcessor::EquinoxAudioProcessor()
@@ -7,18 +8,19 @@ EquinoxAudioProcessor::EquinoxAudioProcessor()
     : AudioProcessor (BusesProperties()
     #if !JucePlugin_IsMidiEffect
         #if !JucePlugin_IsSynth
-                          .withInput ("Input", AudioChannelSet::stereo(), true)
+              .withInput ("Input", AudioChannelSet::stereo(), true)
         #endif
-                          .withOutput ("Output", AudioChannelSet::stereo(), true)
+              .withOutput ("Output", AudioChannelSet::stereo(), true)
     #endif
               ),
-      synthLayer1 (stateManager, 1),
-      synthLayer2 (stateManager, 2),
-      synthLayer3 (stateManager, 3),
-      masterEffectChain (stateManager),
-      stateManager (new AudioProcessorValueTreeState (*this, nullptr, "parameterstate", CreateParameterLayout()),
-          new AudioSampleValueTreeState ("audiosamplestate")),
-      presetManager (stateManager)
+      parameterState (*this, nullptr, "parameterstate", CreateParameterLayout()),
+      audioSampleState ("audiosamplestate"),
+      pluginState (parameterState, audioSampleState),
+      presetManager (pluginState, 3),
+      synthLayer1 (pluginState, 1),
+      synthLayer2 (pluginState, 2),
+      synthLayer3 (pluginState, 3),
+      masterEffectChain (pluginState)
 #endif
 {
     synthLayer1.initialize();
@@ -27,15 +29,18 @@ EquinoxAudioProcessor::EquinoxAudioProcessor()
     masterEffectChain.initialize();
 }
 
-EquinoxAudioProcessor::~EquinoxAudioProcessor()
-{
-}
+EquinoxAudioProcessor::~EquinoxAudioProcessor() {}
+
+AudioProcessorValueTreeState& EquinoxAudioProcessor::getParameters() noexcept { return parameterState; }
+
+AudioSampleValueTreeState& EquinoxAudioProcessor::getAudioSampleState() noexcept { return audioSampleState; }
+
+PluginState& EquinoxAudioProcessor::getPluginState() noexcept { return pluginState; }
+
+PresetManager& EquinoxAudioProcessor::getPresetManager() noexcept { return presetManager; }
 
 //==============================================================================
-const String EquinoxAudioProcessor::getName() const
-{
-    return JucePlugin_Name;
-}
+const String EquinoxAudioProcessor::getName() const { return JucePlugin_Name; }
 
 bool EquinoxAudioProcessor::acceptsMidi() const
 {
@@ -64,26 +69,17 @@ bool EquinoxAudioProcessor::isMidiEffect() const
 #endif
 }
 
-double EquinoxAudioProcessor::getTailLengthSeconds() const
-{
-    return 0.0;
-}
+double EquinoxAudioProcessor::getTailLengthSeconds() const { return 0.0; }
 
 int EquinoxAudioProcessor::getNumPrograms()
 {
     return 1; // NB: some hosts don't cope very well if you tell them there are 0 programs,
-        // so this should be at least 1, even if you're not really implementing programs.
+    // so this should be at least 1, even if you're not really implementing programs.
 }
 
-int EquinoxAudioProcessor::getCurrentProgram()
-{
-    return 0;
-}
+int EquinoxAudioProcessor::getCurrentProgram() { return 0; }
 
-void EquinoxAudioProcessor::setCurrentProgram (int index)
-{
-    juce::ignoreUnused (index);
-}
+void EquinoxAudioProcessor::setCurrentProgram (int index) { juce::ignoreUnused (index); }
 
 const String EquinoxAudioProcessor::getProgramName (int index)
 {
@@ -91,30 +87,32 @@ const String EquinoxAudioProcessor::getProgramName (int index)
     return {};
 }
 
-void EquinoxAudioProcessor::changeProgramName (int index, const String& newName)
-{
-    juce::ignoreUnused (index, newName);
-}
+void EquinoxAudioProcessor::changeProgramName (int index, const String& newName) { juce::ignoreUnused (index, newName); }
 
 //==============================================================================
 void EquinoxAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    lastSampleRate = sampleRate;
+    jassert (sampleRate > 0);
+    jassert (samplesPerBlock > 0);
 
-    WavetableOscillator::prepare (sampleRate);
+    dsp::ProcessSpec spec {};
+    spec.sampleRate = sampleRate;
+    spec.maximumBlockSize = static_cast<uint32> (samplesPerBlock);
+    spec.numChannels = static_cast<uint32> (getTotalNumOutputChannels());
 
-    synthLayer1.prepareToPlay (sampleRate, samplesPerBlock, getTotalNumOutputChannels());
-    synthLayer2.prepareToPlay (sampleRate, samplesPerBlock, getTotalNumOutputChannels());
-    synthLayer3.prepareToPlay (sampleRate, samplesPerBlock, getTotalNumOutputChannels());
+    WavetableOscillator::prepare (spec.sampleRate);
+    audioSampleState.setPlaybackSampleRate (spec.sampleRate);
 
-    masterEffectChain.prepareToPlay (sampleRate, samplesPerBlock, getTotalNumOutputChannels());
+    synthLayer1.prepareToPlay (spec);
+    synthLayer2.prepareToPlay (spec);
+    synthLayer3.prepareToPlay (spec);
+
+    masterEffectChain.prepareToPlay (spec);
+
+    outputSafetyProtector.prepare (spec);
 }
 
-void EquinoxAudioProcessor::releaseResources()
-{
-    // When playback stops, you can use this as an opportunity to free up any
-    // spare memory, etc.
-}
+void EquinoxAudioProcessor::releaseResources() { outputSafetyProtector.reset(); }
 
 bool EquinoxAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
@@ -128,7 +126,7 @@ bool EquinoxAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts) 
         && layouts.getMainOutputChannelSet() != AudioChannelSet::stereo())
         return false;
 
-        // This checks if the input layout matches the output layout
+    // This checks if the input layout matches the output layout
     #if !JucePlugin_IsSynth
     if (layouts.getMainOutputChannelSet() != layouts.getMainInputChannelSet())
         return false;
@@ -152,11 +150,17 @@ void EquinoxAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
 
     // Add any midi events from the GUI keyboard to the midi buffer
     midiKeyboardState.processNextMidiBuffer (midiMessages, 0, buffer.getNumSamples(), true);
+    const bool hasMidiMessages = !midiMessages.isEmpty();
 
     // Render the synth layers
-    synthLayer1.renderNextBlock (buffer, midiMessages);
-    synthLayer2.renderNextBlock (buffer, midiMessages);
-    synthLayer3.renderNextBlock (buffer, midiMessages);
+    if (synthLayer1.shouldProcessBlock (hasMidiMessages))
+        synthLayer1.renderNextBlock (buffer, midiMessages);
+
+    if (synthLayer2.shouldProcessBlock (hasMidiMessages))
+        synthLayer2.renderNextBlock (buffer, midiMessages);
+
+    if (synthLayer3.shouldProcessBlock (hasMidiMessages))
+        synthLayer3.renderNextBlock (buffer, midiMessages);
 
     // Get the current BPM from the host
     if (auto* playHead = getPlayHead())
@@ -172,52 +176,35 @@ void EquinoxAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer
     }
 
     // Processing the buffer through the effect chain
-    masterEffectChain.process (buffer, currentBPM);
+    if (masterEffectChain.shouldProcessBlock())
+        masterEffectChain.process (buffer, currentBPM);
 
-#ifdef DEBUG
-    // Make sure the buffer doesn't contain any invalid or out-of-range values
-    validateAudioBuffer (buffer);
-#endif
+    // Protect against unsafe output values
+    outputSafetyProtector.process (buffer);
 }
 
 //==============================================================================
-bool EquinoxAudioProcessor::hasEditor() const
-{
-    return true;
-}
+bool EquinoxAudioProcessor::hasEditor() const { return true; }
 
-AudioProcessorEditor* EquinoxAudioProcessor::createEditor()
-{
-    return new EquinoxAudioProcessorEditor (*this);
-}
+AudioProcessorEditor* EquinoxAudioProcessor::createEditor() { return new EquinoxAudioProcessorEditor (*this); }
 
 //==============================================================================
-void EquinoxAudioProcessor::getStateInformation (MemoryBlock& destData)
-{
-    stateManager.saveStateToBinary (destData);
-}
+void EquinoxAudioProcessor::getStateInformation (MemoryBlock& destData) { pluginState.saveStateToBinary (destData); }
 
 void EquinoxAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    stateManager.loadStateFromBinary (data, sizeInBytes);
+    const auto restorationVersionBefore = pluginState.getRestorationVersion();
+    presetManager.beginExternalStateRestore();
+    pluginState.loadStateFromBinary (data, sizeInBytes);
+    const auto didRestoreState = pluginState.getRestorationVersion() != restorationVersionBefore;
+    presetManager.syncAfterExternalStateRestore (didRestoreState);
 }
 
 //==============================================================================
 // This creates new instances of the plugin..
-AudioProcessor* JUCE_CALLTYPE createPluginFilter()
-{
-    return new EquinoxAudioProcessor();
-}
+AudioProcessor* JUCE_CALLTYPE createPluginFilter() { return new EquinoxAudioProcessor(); }
 
 AudioProcessorValueTreeState::ParameterLayout EquinoxAudioProcessor::CreateParameterLayout()
 {
-    std::vector<std::unique_ptr<RangedAudioParameter>> parameters;
-
-    synthLayer1.addParameters (parameters);
-    synthLayer2.addParameters (parameters);
-    synthLayer3.addParameters (parameters);
-
-    masterEffectChain.addParameters (parameters);
-
-    return { parameters.begin(), parameters.end() };
+    return createPluginParameterLayout (3);
 }

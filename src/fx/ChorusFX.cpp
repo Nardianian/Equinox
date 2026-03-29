@@ -1,0 +1,43 @@
+/*
+  ==============================================================================
+     ______ ____   __  __ ____ _   __ ____  _  __
+    / ____// __ \ / / / //  _// | / // __ \| |/ /
+   / __/  / / / // / / / / / /  |/ // / / /|   /
+  / /___ / /_/ // /_/ /_/ / / /|  // /_/ //   |
+ /_____/ \___\_\\____//___//_/ |_/ \____//_/|_|
+ 
+    Chorus.cpp
+    Author:  Oliver Rasmussen
+
+  ==============================================================================
+*/
+
+#include "ChorusFX.h"
+
+void ChorusFX::prepare (const dsp::ProcessSpec& spec) { chorus.prepare (spec); }
+
+void ChorusFX::reset() { chorus.reset(); }
+
+bool ChorusFX::isActive() const { return mix > 0.0f; }
+
+void ChorusFX::setParameters (float rate, float depth, float delay, float feedback, float wetMix)
+{
+    if (approximatelyEqual (wetMix, 0.0f))
+        reset();
+
+    chorus.setRate (rate);
+    chorus.setDepth (depth);
+    chorus.setCentreDelay (delay);
+    chorus.setFeedback (feedback);
+    mix = wetMix;
+    chorus.setMix (wetMix);
+}
+
+void ChorusFX::process (AudioBuffer<float>& bufferToProcess)
+{
+    if (isActive())
+    {
+        dsp::AudioBlock<float> inputBlock (bufferToProcess);
+        chorus.process (dsp::ProcessContextReplacing<float> (inputBlock));
+    }
+}

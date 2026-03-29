@@ -1,96 +1,91 @@
 #pragma once
 
-#include "EquinoxSynthesizer.h"
-#include "MasterEffectChain.h"
-#include "PresetManager.h"
-#include "StateManager.h"
+#include "fx/MasterEffectChain.h"
+#include "state/PluginState.h"
+#include "state/PresetManager.h"
+#include "synth/engine/SynthLayer.h"
+#include "utils/OutputSafetyProtector.h"
 #include <JuceHeader.h>
 
 //==============================================================================
-/**
-*/
+/** Main plugin processor that owns state, synth layers, effects, and preset management. */
 class EquinoxAudioProcessor : public AudioProcessor
 {
 public:
-    //==============================================================================
+    /** Creates the processor and all long-lived runtime services. */
     EquinoxAudioProcessor();
-    ~EquinoxAudioProcessor();
+    /** Destroys the processor and releases owned resources. */
+    ~EquinoxAudioProcessor() override;
 
-    //==============================================================================
+    /** Prepares DSP objects for playback at the supplied stream settings. */
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
+    /** Releases playback resources that are no longer needed. */
     void releaseResources() override;
 
 #ifndef JucePlugin_PreferredChannelConfigurations
+    /** Returns whether the supplied bus layout is supported. */
     bool isBusesLayoutSupported (const BusesLayout& layouts) const override;
 #endif
 
+    /** Renders one audio block for all synth layers, effects, and safety processing. */
     void processBlock (AudioBuffer<float>&, MidiBuffer&) override;
 
-    //==============================================================================
+    /** Creates the plugin editor instance. */
     AudioProcessorEditor* createEditor() override;
+    /** Returns whether this processor exposes an editor. */
     bool hasEditor() const override;
 
-    //==============================================================================
+    /** Returns the user-facing plugin name. */
     const String getName() const override;
 
+    /** Returns whether the processor accepts MIDI input. */
     bool acceptsMidi() const override;
+    /** Returns whether the processor produces MIDI output. */
     bool producesMidi() const override;
+    /** Returns whether the processor acts as a pure MIDI effect. */
     bool isMidiEffect() const override;
+    /** Returns the approximate plugin tail length in seconds. */
     double getTailLengthSeconds() const override;
 
-    //==============================================================================
+    /** Returns the number of programs exposed through the legacy program API. */
     int getNumPrograms() override;
+    /** Returns the currently selected legacy program index. */
     int getCurrentProgram() override;
+    /** Selects a legacy program index. */
     void setCurrentProgram (int index) override;
+    /** Returns the display name of a legacy program. */
     const String getProgramName (int index) override;
+    /** Renames a legacy program. */
     void changeProgramName (int index, const String& newName) override;
 
-    //==============================================================================
+    /** Serializes the current plugin state for the host. */
     void getStateInformation (MemoryBlock& destData) override;
+    /** Restores plugin state provided by the host. */
     void setStateInformation (const void* data, int sizeInBytes) override;
 
-    EquinoxSynthesizer synthLayer1, synthLayer2, synthLayer3;
+    /** Returns the parameter state tree used by GUI bindings and DSP. */
+    AudioProcessorValueTreeState& getParameters() noexcept;
+    /** Returns the sample-state store used by the sampler engine. */
+    AudioSampleValueTreeState& getAudioSampleState() noexcept;
+    /** Returns the high-level plugin state service. */
+    PluginState& getPluginState() noexcept;
+    /** Returns the preset manager used by the editor and standalone workflow. */
+    PresetManager& getPresetManager() noexcept;
 
-    MasterEffectChain masterEffectChain;
-
-    StateManager stateManager;
-
+    AudioProcessorValueTreeState parameterState;
+    AudioSampleValueTreeState audioSampleState;
+    PluginState pluginState;
     PresetManager presetManager;
+    SynthLayer synthLayer1, synthLayer2, synthLayer3;
+    MasterEffectChain masterEffectChain;
+    OutputSafetyProtector outputSafetyProtector;
 
     MidiKeyboardState midiKeyboardState;
 
 private:
-    //==============================================================================
-    AudioProcessorValueTreeState::ParameterLayout CreateParameterLayout();
+    /** Builds the complete APVTS parameter layout for the plugin. */
+    static AudioProcessorValueTreeState::ParameterLayout CreateParameterLayout();
 
-    /**
-        * @brief Validates the audio buffer to ensure no NaN, Inf, or out-of-range values are present.
-        * Useful for debugging to protect against unexpected audio values on the output.
-        * @param buffer The audio buffer to validate.
-        * @param minValue The minimum value allowed in the buffer. Default is -1.0f.
-        * @param maxValue The maximum value allowed in the buffer. Default is 1.0f.
-     */
-    void validateAudioBuffer (const juce::AudioBuffer<float>& buffer, float minValue = -1.0f, float maxValue = 1.0f)
-    {
-        // Get the number of channels and samples
-        int numChannels = buffer.getNumChannels();
-        int numSamples = buffer.getNumSamples();
-
-        for (int channel = 0; channel < numChannels; ++channel)
-        {
-            const float* channelData = buffer.getReadPointer (channel);
-
-            for (int sample = 0; sample < numSamples; ++sample)
-            {
-                // Assert if NaN, Inf, or out-of-range values are found
-                jassert (!std::isnan (channelData[sample])); // Ensure no NaN values
-                jassert (!std::isinf (channelData[sample])); // Ensure no Inf values
-                jassert (channelData[sample] >= minValue && channelData[sample] <= maxValue); // Ensure values are within range
-            }
-        }
-    }
-
-    double lastSampleRate;
     double currentBPM = 120;
 
     //==============================================================================
