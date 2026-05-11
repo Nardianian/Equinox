@@ -1,3 +1,8 @@
+# This Fork Readme
+In this fork, at the moment, only a few changes have been made to the CMakeLists.txt and a build for Windows has been made.
+
+# Original repository Readme
+
 # Equinox
 
 Equinox is a synthesizer plugin built with [JUCE](https://juce.com/). It combines three independent synth layers, a master FX section, and a small factory preset library in one instrument.
