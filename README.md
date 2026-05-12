@@ -1,5 +1,7 @@
 # This Fork Readme
 In this fork, at the moment, only a few changes have been made to the CMakeLists.txt and a build for Windows has been made.
+If you compile it yourself, check the directory correspondence in the "CMakeLists.txt" file.
+If you use binaries in tags\releases (pre-releases) and they do not open then install the latest Microsoft C++ Redistributable.
 
 # Original repository Readme
 
